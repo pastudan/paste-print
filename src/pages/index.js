@@ -83,7 +83,7 @@ export default function Home() {
                 Portrait
               </label>
             </div>
-            <div class="">
+            <div>
               <label htmlFor="default-radio-2">
                 <input
                   defaultChecked
