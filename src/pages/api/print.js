@@ -14,5 +14,5 @@ export default function handler(req, res) {
     Buffer.from("\r\n"),
   ]);
   fs.writeFileSync("/dev/usb/lp0", label);
-  res.status(200).json({ name: "John Doe" });
+  res.status(200).json({});
 }
