@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.headernav {
+  background: #f7f5f4;
+}
+
+body {
+  color: #242424;
+}
