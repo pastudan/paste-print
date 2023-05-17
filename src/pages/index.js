@@ -72,7 +72,7 @@ export default function Home() {
           <div className="ml-5">
             <h2>My copied image is:</h2>
             <div className="">
-              <label for="portrait">
+              <label htmlFor="portrait">
                 <input
                   id="portrait"
                   type="radio"
@@ -84,9 +84,9 @@ export default function Home() {
               </label>
             </div>
             <div class="">
-              <label for="default-radio-2">
+              <label htmlFor="default-radio-2">
                 <input
-                  checked
+                  defaultChecked
                   id="landscape"
                   type="radio"
                   value="landscape"
