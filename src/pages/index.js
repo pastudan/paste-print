@@ -11,47 +11,66 @@ let src = null;
 export default function Home() {
   const [img, setImg] = useState(null);
   const [err, setErr] = useState(null);
+
+  async function resizeAndPrint(base64Data) {
+    const jimpImg = await Jimp.read(base64Data);
+    const resizedImg = await jimpImg.contain(COLS, ROWS).grayscale();
+    const base64Img = await resizedImg.getBase64Async(Jimp.MIME_PNG);
+
+    const bitImg = new Buffer.alloc((COLS / 8) * ROWS);
+    for (let row = 0; row < ROWS; row++) {
+      for (let byte = 0; byte < COLS / 8; byte++) {
+        let byteData = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const pixelX = byte * 8 + bit;
+          const pixelY = row;
+          const val = resizedImg.getPixelColor(pixelX, pixelY);
+          if (val > THRESHOLD) {
+            byteData = byteData | (1 << (7 - bit));
+          }
+        }
+        bitImg[row * (COLS / 8) + byte] = byteData;
+      }
+    }
+    fetch("/api/print", {
+      method: "POST",
+      body: bitImg.toString("base64"),
+    });
+    setImg(base64Img);
+    setErr(null);
+  }
+
   // set up handler:
   useEffect(() => {
-    document.addEventListener("paste", (event) => {
+    document.addEventListener("paste", async (event) => {
       const items = (event.clipboardData || window.clipboardData).items;
-      let blob;
+      let blob = null;
 
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") === 0) {
-          blob = items[i].getAsFile();
-        }
+      if (items[0].type.indexOf("image") === 0) {
+        blob = items[0].getAsFile();
+      } else if (items[0].type.indexOf("text") === 0) {
+        items[0].getAsString(async (url) => {
+          console.log(url);
+          // check that url starts with http / https
+          if (url.match(/^https?:\/\//)) {
+            src = url;
+          }
+
+          // load from /api/image
+          const res = await fetch(`/api/image?url=${src}`, {
+            method: "GET",
+          });
+          const blob = await res.blob();
+
+          const reader = new FileReader();
+          reader.onloadend = () => resizeAndPrint(reader.result);
+          reader.readAsDataURL(blob);
+        });
       }
 
       if (blob !== null) {
         const reader = new FileReader();
-        reader.onload = async (e) => {
-          const jimpImg = await Jimp.read(e.target.result);
-          const resizedImg = await jimpImg.contain(COLS, ROWS).grayscale();
-          const base64Img = await resizedImg.getBase64Async(Jimp.MIME_PNG);
-
-          const bitImg = new Buffer.alloc((COLS / 8) * ROWS);
-          for (let row = 0; row < ROWS; row++) {
-            for (let byte = 0; byte < COLS / 8; byte++) {
-              let byteData = 0;
-              for (let bit = 0; bit < 8; bit++) {
-                const pixelX = byte * 8 + bit;
-                const pixelY = row;
-                const val = resizedImg.getPixelColor(pixelX, pixelY);
-                if (val > THRESHOLD) {
-                  byteData = byteData | (1 << (7 - bit));
-                }
-              }
-              bitImg[row * (COLS / 8) + byte] = byteData;
-            }
-          }
-          fetch("/api/print", {
-            method: "POST",
-            body: bitImg.toString("base64"),
-          });
-          setImg(base64Img);
-          setErr(null);
-        };
+        reader.onload = async (e) => resizeAndPrint(e.target.result);
         try {
           reader.readAsDataURL(blob);
         } catch (e) {
